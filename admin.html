@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel de pedidos · Dolce Dettaglio</title>
+<link rel="icon" href="logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+body{font-size:17px}
+.top{display:flex;align-items:center;gap:14px;padding:12px 0;flex-wrap:wrap}
+.top img{width:58px;height:58px;border-radius:50%;mix-blend-mode:multiply}
+.top .script{font-size:34px}
+.top .sp{flex:1}
+.login{max-width:420px;margin:60px auto;background:#fff;border-radius:22px;padding:26px;box-shadow:0 6px 18px rgba(90,62,43,.1);text-align:center}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:6px 0 16px}
+.kpi{background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 3px 10px rgba(90,62,43,.08);border-left:6px solid var(--teal);cursor:pointer;text-align:left}
+.kpi b{display:block;font-size:30px;line-height:1}.kpi span{font-size:15px}
+.kpi[aria-pressed=true]{outline:2px solid var(--ink)}
+.k1{border-color:var(--gold)}.k2{border-color:var(--coral)}.k3{border-color:var(--teal)}.k4{border-color:var(--lilac)}.k5{border-color:#b9a99a}
+.bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.tbl{width:100%;border-collapse:separate;border-spacing:0 8px}
+.tbl th{text-align:left;font-size:14px;letter-spacing:.08em;text-transform:uppercase;padding:0 12px}
+.tbl td{background:#fff;padding:10px 12px;vertical-align:middle}
+.tbl tr td:first-child{border-radius:14px 0 0 14px}.tbl tr td:last-child{border-radius:0 14px 14px 0}
+.tbl tbody tr{cursor:pointer;box-shadow:0 2px 8px rgba(90,62,43,.07)}
+.tbl tbody tr:hover td{background:#fffaf2}
+.pill2{display:inline-block;border-radius:99px;padding:2px 10px;font-size:14px;font-weight:700;color:#fff;white-space:nowrap}
+.q-Pendiente{background:var(--gold)}.q-Enviado{background:var(--lilac)}.q-Aceptado{background:var(--teal)}.q-Rechazado{background:#b9a99a}
+.s{background:#efe6d8;color:var(--ink)}
+.oid{font-family:Georgia,serif;font-weight:700;color:var(--coral)}
+dialog#det{max-width:min(860px,96vw)}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:760px){.dgrid{grid-template-columns:1fr}.hide-m{display:none}}
+.box{background:#fff;border-radius:16px;padding:14px 16px}
+.box h4{margin:0 0 8px;color:var(--teal);font-size:19px}
+.it{padding:6px 0;border-bottom:1px dashed var(--line);font-size:16px}
+.it:last-child{border-bottom:none}
+.money{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.money input{text-align:right}
+.totline{display:flex;justify-content:space-between;font-size:22px;font-weight:700;margin-top:10px;border-top:2px solid var(--goldL);padding-top:8px}
+.hist{white-space:pre-line;font-size:14px;font-style:italic;max-height:140px;overflow:auto}
+.copyl{font-size:14px;word-break:break-all;background:var(--cream);border-radius:10px;padding:6px 8px;margin-top:6px}
+.empty{padding:40px;text-align:center;font-style:italic}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><img src="logo.webp" alt=""><span class="script grad">Panel de pedidos</span><span class="sp"></span>
+    <button class="btn light" id="reload" hidden>↻ Actualizar</button><button class="btn light" id="logout" hidden>Salir</button></div>
+
+  <div id="login" class="login" hidden>
+    <h2 class="script" style="font-size:42px;margin:0;color:var(--coral)">Acceso</h2>
+    <p>Escribe la clave de administración que pusiste en el Apps Script.</p>
+    <form id="lf"><input id="key" type="password" class="search" style="width:100%" placeholder="Clave" autocomplete="current-password">
+    <div class="err" id="lerr"></div><button class="btn coral" style="margin-top:10px">Entrar</button></form>
+  </div>
+
+  <div id="main" hidden>
+    <div class="kpis" id="kpis"></div>
+    <div class="bar"><input class="search" id="q" type="search" placeholder="Buscar por código, nombre, email o producto…"></div>
+    <table class="tbl"><thead><tr><th>Pedido</th><th>Cliente</th><th class="hide-m">Entrega</th><th class="hide-m">Uds.</th><th>Total</th><th>Presupuesto</th><th>Estado</th></tr></thead><tbody id="rows"></tbody></table>
+    <div id="none" class="empty" hidden>No hay pedidos en esta vista.</div>
+  </div>
+</div>
+
+<dialog id="det">
+  <button class="x" type="button" data-close>×</button>
+  <div class="dbody" id="detBody"></div>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="api.js"></script>
+<script>
+const esc = ddEsc;
+let KEY = ''; try { KEY = localStorage.getItem('dd_admin') || ''; } catch (e) {}
+let ORDERS = [], STATUSES = [], QSTATUSES = [], filter = 'activos';
+const $ = id => document.getElementById(id);
+function toast(t){ const e = $('toast'); e.textContent = t; e.classList.add('on'); setTimeout(() => e.classList.remove('on'), 2400); }
+
+const FILTERS = [
+  ['pendientes', 'Presupuesto por hacer', o => o.quoteStatus === 'Pendiente' && o.status !== 'Cancelado', 'k1'],
+  ['esperando', 'Esperando respuesta', o => o.quoteStatus === 'Enviado', 'k4'],
+  ['activos', 'En curso', o => o.quoteStatus === 'Aceptado' && !['Recibido', 'Recogido', 'Cancelado'].includes(o.status), 'k2'],
+  ['cerrados', 'Entregados', o => ['Recibido', 'Recogido'].includes(o.status), 'k3'],
+  ['todos', 'Todos', o => true, 'k5']
+];
+
+async function load(){
+  try {
+    const r = await ddApi('adminList', { key: KEY });
+    ORDERS = r.orders; STATUSES = r.statuses; QSTATUSES = r.quoteStatuses;
+    try { localStorage.setItem('dd_admin', KEY); } catch (e) {}
+    $('login').hidden = true; $('main').hidden = false; $('reload').hidden = false; $('logout').hidden = false;
+    if (!ORDERS.some(FILTERS.find(f => f[0] === filter)[2])) filter = ORDERS.some(FILTERS[0][2]) ? 'pendientes' : 'todos';
+    draw();
+  } catch (e) {
+    $('main').hidden = true; $('login').hidden = false; $('lerr').textContent = KEY ? e.message : '';
+  }
+}
+function draw(){
+  $('kpis').innerHTML = FILTERS.map(([k, label, fn, cls]) => `<button class="kpi ${cls}" aria-pressed="${k === filter}" data-f="${k}"><b>${ORDERS.filter(fn).length}</b><span>${label}</span></button>`).join('');
+  $('kpis').querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filter = b.dataset.f; draw(); });
+  const fn = FILTERS.find(f => f[0] === filter)[2];
+  const term = $('q').value.trim().toLowerCase();
+  const list = ORDERS.filter(fn).filter(o => !term || JSON.stringify([o.id, o.name, o.email, o.phone, o.items]).toLowerCase().includes(term));
+  $('rows').innerHTML = list.map(o => `<tr data-id="${esc(o.id)}">
+    <td><span class="oid">${esc(o.id)}</span><br><span style="font-size:14px">${new Date(o.date).toLocaleDateString('es-ES')}</span></td>
+    <td>${esc(o.name)}<br><span style="font-size:14px">${esc(o.email)}</span></td>
+    <td class="hide-m">${/Env/.test(o.delivery) ? 'Envío' : 'Recogida'}</td>
+    <td class="hide-m">${o.units}</td>
+    <td><b>${o.total === '' ? '—' : ddMoney(o.total)}</b></td>
+    <td><span class="pill2 q-${esc(o.quoteStatus)}">${esc(o.quoteStatus)}</span></td>
+    <td><span class="pill2 s">${esc(o.status)}</span></td></tr>`).join('');
+  $('none').hidden = list.length > 0;
+  $('rows').querySelectorAll('tr').forEach(tr => tr.onclick = () => openDet(tr.dataset.id));
+}
+function openDet(id){
+  const o = ORDERS.find(x => x.id === id); if (!o) return;
+  const envio = /Env/.test(o.delivery);
+  $('detBody').innerHTML = `
+    <h3 style="margin:0">Pedido <span class="oid">${esc(o.id)}</span> · <span class="pill2 q-${esc(o.quoteStatus)}">Presupuesto: ${esc(o.quoteStatus)}</span></h3>
+    <div style="margin:4px 0 14px;font-size:16px">${esc(o.name)} · <a href="mailto:${esc(o.email)}">${esc(o.email)}</a>${o.phone ? ' · <a href="tel:' + esc(o.phone) + '">' + esc(o.phone) + '</a>' : ''}</div>
+    <div class="dgrid">
+      <div>
+        <div class="box"><h4>Productos (${o.units} uds.)</h4>
+          ${(o.items || []).map(it => `<div class="it"><b>${it.qty} ×</b> <span class="oid">${esc(it.code)}</span> ${esc(it.name)}<br><span style="font-size:15px">${esc(it.size)}${it.names ? ' · <b>Nombres:</b> ' + esc(it.names) : ''}</span></div>`).join('')}
+          ${o.notes ? `<p style="font-style:italic;margin:8px 0 0">“${esc(o.notes)}”</p>` : ''}
+        </div>
+        <div class="box" style="margin-top:12px"><h4>Entrega</h4><b>${esc(o.delivery)}</b>${o.address ? '<br>' + esc(o.address) : ''}</div>
+        <div class="box" style="margin-top:12px"><h4>Historial</h4><div class="hist">${esc((o.history || []).join('\n'))}</div>
+          <div class="copyl">Enlace del cliente: <a href="${esc(o.link)}" target="_blank" rel="noopener">${esc(o.link)}</a></div></div>
+      </div>
+      <div>
+        <div class="box"><h4>Presupuesto</h4>
+          <div class="money">
+            <label class="f">Productos (€)<input id="mP" inputmode="decimal" value="${o.products === '' ? '' : o.products}"></label>
+            <label class="f">Envío (€)<input id="mS" inputmode="decimal" value="${o.shipping === '' ? '' : o.shipping}" ${envio ? '' : 'placeholder="0"'}></label>
+            <label class="f">Descuento (€)<input id="mD" inputmode="decimal" value="${o.discount === '' ? '' : o.discount}"></label>
+          </div>
+          ${envio ? '' : '<div style="font-size:14px;font-style:italic">Recogida en el local: normalmente sin envío.</div>'}
+          <div class="totline"><span>Total</span><span id="mT"></span></div>
+          <label class="f">Nota para el cliente (opcional)<input id="mN" maxlength="1000" value="${esc(o.quoteNote || '')}" placeholder="Ej.: plazo de entrega, forma de pago…"></label>
+          <div class="dact"><button class="btn coral" id="sendQ">${o.quoteStatus === 'Pendiente' ? 'Enviar presupuesto' : 'Reenviar presupuesto'}</button><button class="btn light" id="saveQ">Solo guardar</button></div>
+          <label class="f" style="margin-top:10px">Estado del presupuesto (manual)<select id="mQ">${QSTATUSES.map(s => `<option ${s === o.quoteStatus ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
+        </div>
+        <div class="box" style="margin-top:12px"><h4>Estado del pedido</h4>
+          <select id="mSt" class="search" style="width:100%">${STATUSES.map(s => `<option ${s === o.status ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
+          <label class="chk"><input type="checkbox" id="mNotify" checked> Avisar al cliente por email</label>
+          <div class="dact"><button class="btn teal" id="saveSt">Actualizar estado</button></div>
+          <div style="font-size:14px;font-style:italic;margin-top:6px">${envio ? 'Envío: Sin iniciar → Iniciado → Terminado → Enviado → Recibido' : 'Recogida: Sin iniciar → Iniciado → Terminado → Entregado en el local → Recogido'}</div>
+        </div>
+      </div>
+    </div>`;
+  const calc = () => { const n = id => parseFloat(($(id).value || '0').replace(',', '.')) || 0; $('mT').textContent = ddMoney(n('mP') + n('mS') - n('mD')); };
+  ['mP', 'mS', 'mD'].forEach(i => $(i).oninput = calc); calc();
+  const money = () => ({ products: $('mP').value, shipping: $('mS').value, discount: $('mD').value, note: $('mN').value });
+  $('sendQ').onclick = () => save(o.id, money(), { sendQuote: true }, 'Presupuesto enviado al cliente ✓');
+  $('saveQ').onclick = () => save(o.id, Object.assign(money(), { quoteStatus: $('mQ').value }), {}, 'Guardado ✓');
+  $('saveSt').onclick = () => save(o.id, { status: $('mSt').value }, { notify: $('mNotify').checked }, 'Estado actualizado ✓');
+  $('det').showModal();
+}
+async function save(id, fields, extra, okMsg){
+  const btns = $('detBody').querySelectorAll('.btn'); btns.forEach(b => b.disabled = true);
+  try {
+    const r = await ddApi('adminUpdate', Object.assign({ key: KEY, id, fields }, extra));
+    const i = ORDERS.findIndex(x => x.id === id); ORDERS[i] = r.order;
+    toast(okMsg); draw(); openDet(id);
+  } catch (e) { toast(e.message); btns.forEach(b => b.disabled = false); }
+}
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+$('lf').onsubmit = e => { e.preventDefault(); KEY = $('key').value.trim(); $('lerr').textContent = 'Comprobando…'; load(); };
+$('logout').onclick = () => { KEY = ''; try { localStorage.removeItem('dd_admin'); } catch (e) {} location.reload(); };
+$('reload').onclick = () => load().then(() => toast('Actualizado'));
+$('q').oninput = draw;
+if (!ddReady()) { $('login').hidden = false; $('lerr').textContent = 'Falta pegar la URL del Apps Script en config.js.'; }
+else if (KEY) load(); else $('login').hidden = false;
+</script>
+</body>
+</html>

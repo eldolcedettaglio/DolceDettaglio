@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Mi pedido · Dolce Dettaglio</title>
+<link rel="icon" href="logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+.top{display:flex;align-items:center;gap:14px;padding:14px 0}
+.top img{width:74px;height:74px;border-radius:50%;mix-blend-mode:multiply}
+.top a{text-decoration:none;color:inherit}
+.top .script{font-size:38px}
+.panel{background:#fff;border-radius:22px;padding:22px;box-shadow:0 6px 18px rgba(90,62,43,.1);margin-bottom:18px}
+.panel h2{margin:0 0 10px;font-size:24px}
+.oid{display:inline-block;font-family:Georgia,serif;font-weight:700;color:#fff;background:var(--coral);border-radius:99px;padding:3px 14px}
+.item{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line)}
+.item:last-child{border-bottom:none}
+.item img{width:64px;height:64px;object-fit:contain;border-radius:10px;background:#fff}
+.item b{color:var(--coral);font-family:Georgia,serif;font-size:14px}
+.item .q{font-weight:700;font-size:18px}
+.qt{width:100%;border-collapse:collapse;font-size:19px}
+.qt td{padding:6px 0}.qt td:last-child{text-align:right}
+.qt tr.tot td{border-top:2px solid var(--goldL);font-weight:700;font-size:23px;padding-top:10px}
+.banner{border-radius:16px;padding:14px 18px;font-weight:600;margin-bottom:14px}
+.banner.wait{background:#fdf2dc}.banner.ok{background:#dcefe9}.banner.no{background:#fbe1de}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{position:relative;padding:0 0 18px 38px;color:#a99886}
+.tl li::before{content:"";position:absolute;left:9px;top:4px;width:16px;height:16px;border-radius:50%;background:#e9dfcf;border:3px solid var(--cream);box-shadow:0 0 0 2px #e9dfcf}
+.tl li::after{content:"";position:absolute;left:18px;top:24px;bottom:0;width:2px;background:#e9dfcf}
+.tl li:last-child::after{display:none}
+.tl li.done{color:var(--ink)}
+.tl li.done::before{background:var(--teal);box-shadow:0 0 0 2px var(--teal)}
+.tl li.done::after{background:var(--teal)}
+.tl li.now{color:var(--ink);font-weight:700}
+.tl li.now::before{background:var(--coral);box-shadow:0 0 0 2px var(--coral),0 0 0 7px var(--coralL)}
+.hist{font-size:15px;font-style:italic;white-space:pre-line;margin-top:6px}
+.msg{text-align:center;padding:50px 10px;font-size:20px}
+.cols{display:grid;grid-template-columns:1.2fr 1fr;gap:18px}
+@media(max-width:800px){.cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap" style="max-width:1000px">
+  <div class="top"><a href="index.html"><img src="logo.webp" alt="Dolce Dettaglio"></a><div><a href="index.html"><span class="script grad">Dolce Dettaglio</span></a><div style="font-style:italic">Seguimiento de tu pedido</div></div></div>
+  <div id="app"><p class="msg">Cargando tu pedido…</p></div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="config.js"></script>
+<script src="api.js"></script>
+<script src="images.js"></script>
+<script>
+const P = new URLSearchParams(location.search);
+const id = P.get('id'), token = P.get('t');
+const app = document.getElementById('app');
+const esc = ddEsc;
+function imgFor(code){
+  if (/^F\d\d$/.test(code)) return 'fav/' + code + '.webp';
+  const n = String(code).replace('#', '');
+  return (window.IMG || {})[n] || 'logo.webp';
+}
+function steps(o){
+  const pickup = !/Env[ií]o/.test(o.delivery || '');
+  return ['Pedido recibido', 'Presupuesto enviado', 'Presupuesto aceptado', 'En preparación', 'Terminado',
+          pickup ? 'Listo para recoger en ' + DD_CONFIG.PICKUP : 'Enviado', pickup ? 'Recogido' : 'Entregado en tu casa'];
+}
+function stepIndex(o){
+  const s = o.status, q = o.quoteStatus;
+  if (s === 'Recibido' || s === 'Recogido') return 6;
+  if (s === 'Enviado' || s === 'Entregado en el local') return 5;
+  if (s === 'Terminado') return 4;
+  if (s === 'Iniciado') return 3;
+  if (q === 'Aceptado') return 2;
+  if (q === 'Enviado') return 1;
+  return 0;
+}
+function render(o){
+  const cancelled = o.status === 'Cancelado' || o.quoteStatus === 'Rechazado';
+  const idx = stepIndex(o);
+  const st = steps(o);
+  let banner = '';
+  if (cancelled) banner = '<div class="banner no">Este pedido está cancelado. Si quieres retomarlo, escríbenos y lo vemos.</div>';
+  else if (o.quoteStatus === 'Pendiente') banner = '<div class="banner wait">Estamos preparando tu presupuesto. Te llegará por email y también lo verás aquí.</div>';
+  else if (o.quoteStatus === 'Enviado') banner = '<div class="banner wait"><b>¡Tu presupuesto está listo!</b> Revísalo y acéptalo para que empecemos a prepararlo.</div>';
+  else if (o.quoteStatus === 'Aceptado') banner = '<div class="banner ok">¡Gracias! Presupuesto aceptado. Te iremos contando cómo avanza.</div>';
+
+  const quote = (o.quoteStatus === 'Enviado' || o.quoteStatus === 'Aceptado') ? `
+    <div class="panel"><h2>Presupuesto</h2>
+      <table class="qt">
+        <tr><td>Productos</td><td>${ddMoney(o.products)}</td></tr>
+        ${+o.shipping ? `<tr><td>Envío a domicilio</td><td>${ddMoney(o.shipping)}</td></tr>` : ''}
+        ${+o.discount ? `<tr><td>Descuento por cantidad</td><td>−${ddMoney(o.discount)}</td></tr>` : ''}
+        <tr class="tot"><td>Total</td><td>${ddMoney(o.total)}</td></tr>
+      </table>
+      ${o.quoteNote ? `<p style="font-style:italic">${esc(o.quoteNote)}</p>` : ''}
+      ${o.quoteStatus === 'Enviado' && !cancelled ? `
+        <label class="f">Comentario (opcional)<input id="qComment" maxlength="500" placeholder="Cualquier detalle que quieras añadir"></label>
+        <div class="dact"><button class="btn teal" id="accept">Aceptar presupuesto</button><button class="btn light" id="reject">Rechazar</button></div>` : ''}
+    </div>` : '';
+
+  app.innerHTML = `
+    ${banner}
+    <div class="cols">
+      <div>
+        <div class="panel">
+          <h2>Pedido <span class="oid">${esc(o.id)}</span></h2>
+          <div style="font-size:16px;margin-bottom:6px">${esc(o.name)} · ${new Date(o.date).toLocaleDateString('es-ES')}</div>
+          <div style="font-size:16px"><b>Entrega:</b> ${esc(o.delivery)}${o.address ? '<br>' + esc(o.address) : ''}</div>
+          <div style="margin-top:10px">${(o.items || []).map(it => `
+            <div class="item"><img src="${imgFor(it.code)}" alt=""><div><b>${esc(it.code)}</b> · ${esc(it.name)}<br><span style="font-size:15px">${esc(it.size)}${it.names ? ' · Nombres: <i>' + esc(it.names) + '</i>' : ''}</span></div><div class="q">×${it.qty}</div></div>`).join('')}
+          </div>
+          <div style="margin-top:8px;font-weight:700">${o.units} unidades</div>
+          ${o.notes ? `<div style="margin-top:8px;font-style:italic">“${esc(o.notes)}”</div>` : ''}
+        </div>
+        ${quote}
+      </div>
+      <div class="panel"><h2>Estado</h2>
+        <ul class="tl">${st.map((s, k) => `<li class="${cancelled ? '' : (k < idx ? 'done' : k === idx ? 'now' : '')}">${esc(s)}</li>`).join('')}</ul>
+        <details style="margin-top:6px"><summary style="cursor:pointer">Historial</summary><div class="hist">${esc((o.history || []).join('\n'))}</div></details>
+        <p style="font-size:15px;margin-top:16px">¿Dudas? Escríbenos a <b>${esc(DD_CONFIG.EMAIL)}</b> o por Instagram a <b>@${esc(DD_CONFIG.INSTAGRAM)}</b>.</p>
+      </div>
+    </div>`;
+  const a = document.getElementById('accept'), r = document.getElementById('reject');
+  if (a) a.onclick = () => respond(true);
+  if (r) r.onclick = () => { if (confirmReject()) respond(false); };
+}
+let rejectArmed = false;
+function confirmReject(){
+  if (rejectArmed) return true;
+  rejectArmed = true; const b = document.getElementById('reject'); b.textContent = 'Pulsa otra vez para rechazar'; return false;
+}
+async function respond(accept){
+  const btns = app.querySelectorAll('.dact .btn'); btns.forEach(b => b.disabled = true);
+  try {
+    const c = document.getElementById('qComment');
+    const r = await ddApi('respondQuote', { id, token, accept, comment: c ? c.value : '' });
+    render(r.order); toast(accept ? '¡Presupuesto aceptado! ♥' : 'Presupuesto rechazado');
+  } catch (e) { toast(e.message); btns.forEach(b => b.disabled = false); }
+}
+function toast(t){ const e = document.getElementById('toast'); e.textContent = t; e.classList.add('on'); setTimeout(() => e.classList.remove('on'), 2400); }
+(async () => {
+  if (!id || !token) { app.innerHTML = '<p class="msg">Este enlace no es válido. Usa el enlace que te enviamos por email.</p>'; return; }
+  try { const r = await ddApi('getOrder', { id, token }); render(r.order); }
+  catch (e) { app.innerHTML = `<p class="msg">${esc(e.message)}</p>`; }
+})();
+</script>
+</body>
+</html>
