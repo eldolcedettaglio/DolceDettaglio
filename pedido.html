@@ -40,6 +40,7 @@
 .tl li.now::before{background:var(--coral);box-shadow:0 0 0 2px var(--coral),0 0 0 7px var(--coralL)}
 .hist{font-size:15px;font-style:italic;white-space:pre-line;margin-top:6px}
 .msg{text-align:center;padding:50px 10px;font-size:20px}
+.pay{margin-top:12px;background:#fdf2dc;border-radius:14px;padding:12px 14px;font-size:17px}.pay.paid{background:#dcefe9}
 .cols{display:grid;grid-template-columns:1.2fr 1fr;gap:18px}
 @media(max-width:800px){.cols{grid-template-columns:1fr}}
 </style>
@@ -97,6 +98,7 @@ function render(o){
         <tr class="tot"><td>Total</td><td>${ddMoney(o.total)}</td></tr>
       </table>
       ${o.quoteNote ? `<p style="font-style:italic">${esc(o.quoteNote)}</p>` : ''}
+      ${o.quoteStatus === 'Aceptado' && o.paymentInfo ? `<div class="pay ${/^Pagado/.test(o.payment) ? 'paid' : ''}"><b>${/^Pagado/.test(o.payment) ? '✓ Pago recibido. ¡Gracias!' : 'Forma de pago'}</b>${/^Pagado/.test(o.payment) ? '' : '<br>' + esc(o.paymentInfo)}</div>` : ''}
       ${o.quoteStatus === 'Enviado' && !cancelled ? `
         <label class="f">Comentario (opcional)<input id="qComment" maxlength="500" placeholder="Cualquier detalle que quieras añadir"></label>
         <div class="dact"><button class="btn teal" id="accept">Aceptar presupuesto</button><button class="btn light" id="reject">Rechazar</button></div>` : ''}
@@ -110,6 +112,7 @@ function render(o){
           <h2>Pedido <span class="oid">${esc(o.id)}</span></h2>
           <div style="font-size:16px;margin-bottom:6px">${esc(o.name)} · ${new Date(o.date).toLocaleDateString('es-ES')}</div>
           <div style="font-size:16px"><b>Entrega:</b> ${esc(o.delivery)}${o.address ? '<br>' + esc(o.address) : ''}</div>
+          ${o.needBy ? `<div style="font-size:16px"><b>Lo necesitas para:</b> ${new Date(o.needBy + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</div>` : ''}
           <div style="margin-top:10px">${(o.items || []).map(it => `
             <div class="item"><img src="${imgFor(it.code)}" alt=""><div><b>${esc(it.code)}</b> · ${esc(it.name)}<br><span style="font-size:15px">${esc(it.size)}${it.names ? ' · Nombres: <i>' + esc(it.names) + '</i>' : ''}</span></div><div class="q">×${it.qty}</div></div>`).join('')}
           </div>

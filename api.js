@@ -17,3 +17,14 @@ window.ddApi = async function (action, payload) {
 };
 window.ddMoney = x => (x === '' || x === null || x === undefined || isNaN(+x)) ? '—' : (Math.round(+x * 100) / 100).toFixed(2).replace('.', ',') + ' €';
 window.ddEsc = s => String(s === undefined || s === null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// Estadísticas anónimas: visitas, productos vistos y añadidos (sin datos personales)
+window.ddTrack = function (type, data) {
+  try {
+    if (!window.ddReady()) return;
+    let v = ''; try { v = localStorage.getItem('dd_v') || ''; if (!v) { v = Math.random().toString(36).slice(2, 12); localStorage.setItem('dd_v', v); } } catch (e) {}
+    let src = ''; try { src = new URLSearchParams(location.search).get('src') || sessionStorage.getItem('dd_src') || ''; if (src) sessionStorage.setItem('dd_src', src); } catch (e) {}
+    const body = JSON.stringify(Object.assign({ action: 'track', type: type, visitor: v, src: src, ref: document.referrer || '' }, data || {}));
+    fetch(window.DD_CONFIG.API_URL, { method: 'POST', mode: 'no-cors', keepalive: true, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: body }).catch(() => {});
+  } catch (e) {}
+};
