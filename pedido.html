@@ -40,6 +40,7 @@
 .tl li.now::before{background:var(--coral);box-shadow:0 0 0 2px var(--coral),0 0 0 7px var(--coralL)}
 .hist{font-size:15px;font-style:italic;white-space:pre-line;margin-top:6px}
 .msg{text-align:center;padding:50px 10px;font-size:20px}
+.msgs{margin-top:14px}.msgs h3{font-size:19px;margin:0 0 8px;color:var(--teal)}.msgs .msg{text-align:left;padding:10px 14px;font-size:16px;background:#fdf2dc;border-radius:12px;margin-bottom:8px}.msgs .msg small{display:block;font-size:12px;font-style:italic;opacity:.75}
 .pay{margin-top:12px;background:#fdf2dc;border-radius:14px;padding:12px 14px;font-size:17px}.pay.paid{background:#dcefe9}
 .cols{display:grid;grid-template-columns:1.2fr 1fr;gap:18px}
 @media(max-width:800px){.cols{grid-template-columns:1fr}}
@@ -123,6 +124,7 @@ function render(o){
       </div>
       <div class="panel"><h2>Estado</h2>
         <ul class="tl">${st.map((s, k) => `<li class="${cancelled ? '' : (k < idx ? 'done' : k === idx ? 'now' : '')}">${esc(s)}</li>`).join('')}</ul>
+        ${(() => { const M = (o.history || []).map(h => h.match(/^(\S+ \S+) Mensaje: (.*)$/)).filter(Boolean); return M.length ? `<div class="msgs"><h3>Mensajes de Dolce Dettaglio</h3>${M.reverse().map(m => `<div class="msg"><small>${esc(m[1])}</small>${esc(m[2]).replace(/ \/ /g, '<br>')}</div>`).join('')}</div>` : ''; })()}
         <details style="margin-top:6px"><summary style="cursor:pointer">Historial</summary><div class="hist">${esc((o.history || []).join('\n'))}</div></details>
         <p style="font-size:15px;margin-top:16px">¿Dudas? Escríbenos a <b>${esc(DD_CONFIG.EMAIL)}</b> o por Instagram a <b>@${esc(DD_CONFIG.INSTAGRAM)}</b>.</p>
       </div>

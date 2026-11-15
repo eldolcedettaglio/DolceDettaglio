@@ -46,6 +46,9 @@ dialog#det{max-width:min(860px,96vw)}
 .hist{white-space:pre-line;font-size:14px;font-style:italic;max-height:140px;overflow:auto}
 .copyl{font-size:14px;word-break:break-all;background:var(--cream);border-radius:10px;padding:6px 8px;margin-top:6px}
 .empty{padding:40px;text-align:center;font-style:italic}
+#mMsg{width:100%;font:inherit;font-size:16px;padding:8px 12px;border-radius:12px;border:1.5px solid var(--line);background:#fff;color:var(--ink);resize:vertical}
+.tpls{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px;font-size:14px}.tpls span{font-weight:700}.tpls button{border:1.5px solid var(--line);background:var(--cream);border-radius:99px;padding:3px 10px;font-size:14px}
+.errbox{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:9999;background:#fff;border:2px solid #c0392b;border-radius:16px;padding:14px 18px;max-width:min(560px,92vw);box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:16px}.errbox b{color:#c0392b}.errbox .btn{margin-top:8px}
 .noticebox{background:#fff;border-radius:16px;padding:12px 16px;margin:4px 0 12px;box-shadow:0 3px 10px rgba(90,62,43,.08)}.noticebox label{display:block;font-size:15px;margin-bottom:6px}.noticebox .search{flex:1;min-width:240px}
 .shopsw{color:#fff}.shopsw.on{background:var(--teal)}.shopsw.off{background:#9b8b7c}
 .need.soon{color:#b7791f;font-weight:700}.need.late{color:#c0392b;font-weight:700}.need small{font-size:12px}
@@ -114,6 +117,7 @@ const esc = ddEsc;
 let KEY = ''; try { KEY = localStorage.getItem('dd_admin') || ''; } catch (e) {}
 let ORDERS = [], STATUSES = [], QSTATUSES = [], PSTATUSES = ['Pendiente', 'Pagado (Bizum)', 'Pagado (efectivo)', 'Pagará en efectivo al recoger'], filter = 'activos';
 const $ = id => document.getElementById(id);
+function alertBox(t){ let b = $('errBox'); if (!b) { b = document.createElement('div'); b.id = 'errBox'; b.className = 'errbox'; } ($('det').open ? $('det') : document.body).appendChild(b); b.innerHTML = '<b>No se ha podido completar</b><br>' + esc(t) + '<br><button class="btn light" type="button">Entendido</button>'; b.hidden = false; b.querySelector('button').onclick = () => b.hidden = true; }
 function toast(t){ const e = $('toast'); e.textContent = t; e.classList.add('on'); setTimeout(() => e.classList.remove('on'), 2400); }
 
 const FILTERS = [
@@ -197,8 +201,12 @@ function openDet(id){
         ${o.quoteStatus === 'Aceptado' ? `<div class="box" style="margin-top:12px"><h4>Pago</h4><div style="display:flex;gap:8px;flex-wrap:wrap"><select id="mPay" class="search" style="flex:1;min-width:160px">${PSTATUSES.map(s => `<option ${s === (o.payment || 'Pendiente') ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select><button class="btn teal" id="savePay">Guardar pago</button></div></div>` : ''}
         <div class="box" style="margin-top:12px"><h4>Estado del pedido</h4>
           <select id="mSt" class="search" style="width:100%">${STATUSES.map(s => `<option ${s === o.status ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
-          <label class="chk"><input type="checkbox" id="mNotify" checked> Avisar al cliente por email</label>
-          <div class="dact"><button class="btn teal" id="saveSt">Actualizar estado</button></div>
+          <label class="f" style="margin-top:10px">Mensaje para el cliente (opcional)
+            <textarea id="mMsg" maxlength="2000" rows="4" placeholder="Ej.: Ya puedes recogerlo en El Gorrión de lunes a sábado de 9:00 a 20:00. Dinos el código del pedido al llegar."></textarea></label>
+          <div class="tpls"><span>Plantillas:</span><button type="button" data-t="pick">Listo para recoger</button><button type="button" data-t="ship">Enviado</button><button type="button" data-t="start">En preparación</button><button type="button" data-t="pay">Recordar pago</button></div>
+          <label class="chk"><input type="checkbox" id="mNotify" checked> Avisar al cliente por email del cambio de estado</label>
+          <div class="dact"><button class="btn teal" id="saveSt">Actualizar estado</button><button class="btn light" id="sendMsg">Solo enviar mensaje</button></div>
+          <div style="font-size:13px;font-style:italic;margin-top:4px">El mensaje se envía por email y el cliente lo ve en la página de su pedido.</div>
           <div style="font-size:14px;font-style:italic;margin-top:6px">${envio ? 'Envío: Sin iniciar → Iniciado → Terminado → Enviado → Recibido' : 'Recogida: Sin iniciar → Iniciado → Terminado → Entregado en el local → Recogido'}</div>
         </div>
       </div>
@@ -220,7 +228,16 @@ function openDet(id){
   const money = () => ({ products: $('mP').value, shipping: $('mS').value, discount: $('mD').value, note: $('mN').value });
   $('sendQ').onclick = () => save(o.id, money(), { sendQuote: true }, 'Presupuesto enviado al cliente ✓');
   $('saveQ').onclick = () => save(o.id, Object.assign(money(), { quoteStatus: $('mQ').value }), {}, 'Guardado ✓');
-  $('saveSt').onclick = () => save(o.id, { status: $('mSt').value }, { notify: $('mNotify').checked }, 'Estado actualizado ✓');
+  const hasGaps = () => /\[[^\]]+\]/.test($('mMsg').value) && (alertBox('Completa en el mensaje los huecos entre corchetes, por ejemplo [días y horas], antes de enviarlo.'), true);
+  $('saveSt').onclick = () => hasGaps() || save(o.id, { status: $('mSt').value }, { notify: $('mNotify').checked, message: $('mMsg').value }, $('mMsg').value.trim() ? 'Estado actualizado y mensaje enviado ✓' : 'Estado actualizado ✓');
+  $('sendMsg').onclick = () => { if (!$('mMsg').value.trim()) return alertBox('Escribe el mensaje antes de enviarlo.'); if (hasGaps()) return; save(o.id, {}, { message: $('mMsg').value }, 'Mensaje enviado al cliente ✓'); };
+  const TPL = {
+    pick: { st: 'Entregado en el local', t: `¡Tu pedido ya está listo! 🎄\nPuedes recogerlo en El Gorrión (Plaza de las Vacas, 8 · 05003 Ávila).\nHorario de recogida: [días y horas].\nAl llegar, indica el código ${o.id}.${o.payment && /^Pagado/.test(o.payment) ? '' : '\nSi no lo has pagado aún, puedes hacerlo en efectivo al recogerlo o por Bizum.'}` },
+    ship: { st: 'Enviado', t: `¡Tu pedido ya va de camino! 📦\nLo hemos enviado a: ${o.address || '[dirección]'}.\nNúmero de seguimiento: [número] ([empresa de transporte]).\nPlazo estimado de entrega: [días].` },
+    start: { st: 'Iniciado', t: `¡Ya estamos preparando tu pedido! ✂️\nTe avisaremos en cuanto esté terminado.` },
+    pay: { st: '', t: `Te recordamos que tu pedido ${o.id} está pendiente de pago (${ddMoney(o.total)}).\nPuedes pagarlo por Bizum indicando el código del pedido, o en efectivo al recogerlo en El Gorrión.` }
+  };
+  $('detBody').querySelectorAll('.tpls button').forEach(b => b.onclick = () => { const x = TPL[b.dataset.t]; $('mMsg').value = x.t; if (x.st && STATUSES.includes(x.st)) $('mSt').value = x.st; $('mMsg').focus(); });
   $('det').showModal();
 }
 async function save(id, fields, extra, okMsg){
@@ -228,8 +245,10 @@ async function save(id, fields, extra, okMsg){
   try {
     const r = await ddApi('adminUpdate', Object.assign({ key: KEY, id, fields }, extra));
     const i = ORDERS.findIndex(x => x.id === id); ORDERS[i] = r.order;
-    toast(okMsg); draw(); openDet(id);
-  } catch (e) { toast(e.message); btns.forEach(b => b.disabled = false); }
+    draw(); openDet(id);
+    if (r.mailError) alertBox('Se guardó, pero el email no se pudo enviar: ' + r.mailError + '. Revisa los permisos del Apps Script (ejecuta setupReminders) y la cuota de emails.');
+    else toast(okMsg);
+  } catch (e) { alertBox(e.message); btns.forEach(b => b.disabled = false); }
 }
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
 $('lf').onsubmit = e => { e.preventDefault(); KEY = $('key').value.trim(); $('lerr').textContent = 'Comprobando…'; load(); };
