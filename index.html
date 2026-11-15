@@ -135,7 +135,7 @@
 
 <dialog id="dlg">
   <button class="x" type="button" data-close>×</button>
-  <div class="dimg" id="dImgWrap"><img id="dImg" alt=""><div class="npv" id="nPrev" hidden></div></div>
+  <div class="dimg" id="dImgWrap"><img id="dImg" alt=""></div>
   <form class="dbody" id="dForm" method="dialog">
     <span class="dcode" id="dCode"></span>
     <h3 id="dName"></h3>
@@ -147,7 +147,7 @@
         <label><input type="radio" name="font" value="Navideña"><b style="font-family:'Mountains of Christmas';font-weight:700">Navideña</b></label>
         <label><input type="radio" name="font" value="Redondita"><b style="font-family:Chewy;font-weight:400">Redondita</b></label>
       </div>
-      <div class="npnote">Vista previa orientativa: así quedaría el nombre sobre la pieza.</div></div>
+      <div class="npnote">Elige la letra con la que quieres el nombre.</div></div>
     <div class="frow">
       <label class="f">Tamaño<select id="fSize"><option>Estándar · 6 cm</option><option>Mini · 4 cm</option><option>Grande · 8 cm</option><option>XL · a medida</option></select></label>
       <label class="f">Unidades<input id="fQty" type="number" min="1" value="1"></label>
@@ -296,7 +296,7 @@ function openItem(it){
   document.getElementById('fName').value = ''; document.getElementById('fQty').value = 1;
   document.querySelector('input[name=fin][value=Natural]').checked = true; drawColors();
   document.querySelector('input[name=font][value="Clásica"]').checked = true;
-  document.getElementById('fonts').style.display = it.special ? 'none' : ''; document.querySelector('.npnote').style.display = it.special ? 'none' : ''; drawPreview();
+  document.getElementById('fonts').style.display = it.special ? 'none' : ''; document.querySelector('.npnote').style.display = it.special ? 'none' : '';
   dlg.showModal();
 }
 function drawColors(){
@@ -311,21 +311,6 @@ function drawColors(){
 document.querySelectorAll('input[name=fin]').forEach(r => r.addEventListener('change', drawColors));
 document.getElementById('fQty').addEventListener('input', drawColors);
 const FONT_CSS = { 'Clásica': "800 1em Montserrat", 'Elegante': "italic 700 1em 'Playfair Display'", 'Navideña': "700 1em 'Mountains of Christmas'", 'Redondita': "400 1em Chewy" };
-function drawPreview(){
-  const box = document.getElementById('nPrev');
-  const name = document.getElementById('fName').value.trim();
-  if (!cur || !cur.p || cur.special || !name) { box.hidden = true; return; }
-  const f = document.querySelector('input[name=font]:checked').value;
-  const first = name.split(/,|;|\n|\s+y\s+/i).map(x => x.trim()).filter(Boolean);
-  box.hidden = false;
-  box.style.font = FONT_CSS[f] || FONT_CSS['Clásica'];
-  box.textContent = first.length > 1 ? first.slice(0, 4).join(' · ') : name;
-  const len = box.textContent.length;
-  box.style.fontSize = (len <= 6 ? 54 : len <= 10 ? 42 : len <= 16 ? 32 : 24) + 'px';
-  box.classList.toggle('onphoto', !!cur.fav);
-}
-document.getElementById('fName').addEventListener('input', drawPreview);
-document.querySelectorAll('input[name=font]').forEach(r => r.addEventListener('change', drawPreview));
 document.getElementById('dForm').addEventListener('submit', e => {
   e.preventDefault();
   const finish = document.querySelector('input[name=fin]:checked').value;
