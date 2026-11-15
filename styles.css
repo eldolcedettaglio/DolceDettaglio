@@ -187,3 +187,42 @@ fieldset.deliv legend{font-weight:700;font-size:16px;margin-bottom:6px}
 .dimg{position:relative;overflow:hidden;border-radius:24px 24px 0 0}
 .dimg.photo img{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:center 45%}
 .closed-bar{background:var(--ink);color:#fff;text-align:center;padding:12px 18px;font-size:18px;position:relative;z-index:5}
+
+.special{border-radius:26px;padding:28px;background:linear-gradient(120deg,#e9def4,#fdf2dc 55%,#fbe1de);display:grid;grid-template-columns:1.5fr 1fr;gap:22px;align-items:center;position:relative;box-shadow:0 6px 18px rgba(90,62,43,.1)}
+.special::before{content:"";position:absolute;inset:8px;border:1.5px dashed var(--gold);border-radius:20px;pointer-events:none}
+.special>*{position:relative}
+.special h3{margin:8px 0 6px;font-size:32px;line-height:1.05}
+.special h3 .script{font-size:52px;color:var(--coral)}
+.special p{margin:0}
+.special-r{background:#fff;border-radius:20px;padding:22px 14px;text-align:center;display:flex;flex-direction:column;gap:6px;box-shadow:0 4px 12px rgba(90,62,43,.1)}
+.special-r b{font-size:24px;color:var(--teal)}.special-r span{font-style:italic}
+.special-r em{font-style:normal;font-weight:700;color:#fff;background:var(--coral);border-radius:12px;padding:6px}
+@media(max-width:700px){.special{grid-template-columns:1fr}}
+
+.pzbox{margin-top:22px;border-radius:24px;padding:22px 26px;background:linear-gradient(120deg,#fbe1de,#fdf2dc 55%,#dcefe9);display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap;box-shadow:0 6px 18px rgba(90,62,43,.1)}
+.pzbox>div{flex:1;min-width:260px}.pzbox h3{margin:8px 0 4px;font-size:28px}.pzbox h3 .script{font-size:46px;color:var(--coral)}.pzbox p{margin:0}
+
+.ctitle{font-weight:700;font-size:16px;margin:4px 0}
+.colors{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;max-height:190px;overflow:auto}
+.colors label{font-size:14px;font-weight:700;display:flex;flex-direction:column;gap:2px}
+.colors input{font:inherit;font-size:16px;padding:6px 10px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--ink)}
+#dlg{max-height:94vh}#dlg .dbody{max-height:calc(94vh - min(360px,48vh));overflow:auto}
+.dimg{height:min(260px,34vh)!important}#dlg .dbody{max-height:calc(94vh - min(260px,34vh))!important}
+.special-r{align-self:stretch;justify-content:space-evenly}
+.gorr{display:inline-flex;align-items:center;gap:16px;background:#fff;border-radius:22px;padding:14px 24px 14px 14px;margin-top:22px;text-align:left;box-shadow:0 6px 18px rgba(90,62,43,.12)}.gorr img{width:96px;height:96px}.gorr small{display:block;letter-spacing:.14em;text-transform:uppercase;font-weight:700;font-size:12px;color:var(--teal)}.gorr b{display:block;font-size:21px}.gorr i{color:var(--coral);font-weight:700;font-style:normal}
+
+.npv{position:absolute;left:6%;right:6%;bottom:9%;text-align:center;color:#7a4a26;line-height:1.05;text-shadow:0 0 6px #fff,0 0 12px #fff,0 0 2px #fff;pointer-events:none;word-break:break-word}
+.npv.onphoto{color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.7)}
+.fonts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:15px}
+.fonts>span{font-weight:700;margin-right:2px}
+.fonts label{cursor:pointer}.fonts input{position:absolute;opacity:0;pointer-events:none}
+.fonts b{display:inline-block;border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:3px 12px;font-size:16px;color:var(--ink)}
+.fonts input:checked+b{border-color:var(--teal);background:#e8f6f2;box-shadow:0 0 0 2px var(--tealL)}
+.fonts input:focus-visible+b{outline:2px solid var(--teal)}
+.npnote{font-size:13px;font-style:italic;margin-top:4px}
+.notice-bar{background:linear-gradient(90deg,var(--coral),#e99a8a);color:#fff;text-align:center;padding:10px 18px;font-size:18px;font-weight:700}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.gal figure{margin:0;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 4px 14px rgba(90,62,43,.1)}
+.gal img{width:100%;aspect-ratio:1;object-fit:cover}
+.gal figcaption{padding:8px 12px;font-style:italic;font-size:16px}
+.legal-link{margin-top:8px;font-size:15px}.legal-link a,.chk a{color:var(--teal)}

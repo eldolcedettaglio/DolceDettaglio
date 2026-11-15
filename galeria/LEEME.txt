@@ -1,0 +1,1 @@
+Sube aquí las fotos de la galería «Así quedaron» y añádelas en galeria.js.

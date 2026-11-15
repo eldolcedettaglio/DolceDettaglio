@@ -46,6 +46,7 @@ dialog#det{max-width:min(860px,96vw)}
 .hist{white-space:pre-line;font-size:14px;font-style:italic;max-height:140px;overflow:auto}
 .copyl{font-size:14px;word-break:break-all;background:var(--cream);border-radius:10px;padding:6px 8px;margin-top:6px}
 .empty{padding:40px;text-align:center;font-style:italic}
+.noticebox{background:#fff;border-radius:16px;padding:12px 16px;margin:4px 0 12px;box-shadow:0 3px 10px rgba(90,62,43,.08)}.noticebox label{display:block;font-size:15px;margin-bottom:6px}.noticebox .search{flex:1;min-width:240px}
 .shopsw{color:#fff}.shopsw.on{background:var(--teal)}.shopsw.off{background:#9b8b7c}
 .need.soon{color:#b7791f;font-weight:700}.need.late{color:#c0392b;font-weight:700}.need small{font-size:12px}
 .pay-ok{color:var(--teal);font-size:13px;font-weight:700}.pay-no{color:#c0392b;font-size:13px;font-weight:700}
@@ -84,6 +85,8 @@ dialog#det{max-width:min(860px,96vw)}
     <div class="err" id="lerr"></div><button class="btn coral" style="margin-top:10px">Entrar</button></form>
   </div>
 
+  <div class="noticebox" id="noticeBox" hidden><label for="noticeIn"><b>Aviso en la web</b> (por ejemplo, la fecha límite). Déjalo vacío para quitarlo.</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="noticeIn" class="search" maxlength="200" placeholder="Pide antes del 10 de diciembre para tenerlo en Navidad"><button class="btn teal" id="saveNotice" type="button">Guardar aviso</button></div></div>
   <div class="tabs" id="tabs" hidden><button id="tabO" aria-pressed="true">Pedidos</button><button id="tabS" aria-pressed="false">Estadísticas</button></div>
   <div id="stats" hidden>
     <div class="bar"><select id="per" class="search" style="max-width:220px;flex:none"><option value="7">Últimos 7 días</option><option value="30" selected>Últimos 30 días</option><option value="90">Últimos 90 días</option><option value="365">Último año</option></select></div>
@@ -125,7 +128,7 @@ const FILTERS = [
 async function load(){
   try {
     const r = await ddApi('adminList', { key: KEY });
-    SHOP_OPEN = r.open !== false; drawSw(); ORDERS = r.orders; STATUSES = r.statuses; QSTATUSES = r.quoteStatuses; if (r.paymentStatuses) PSTATUSES = r.paymentStatuses;
+    SHOP_OPEN = r.open !== false; drawSw(); $('noticeBox').hidden = false; if (document.activeElement !== $('noticeIn')) $('noticeIn').value = r.notice || ''; if (r.prices) window.DD_PRICES = r.prices; ORDERS = r.orders; STATUSES = r.statuses; QSTATUSES = r.quoteStatuses; if (r.paymentStatuses) PSTATUSES = r.paymentStatuses;
     try { localStorage.setItem('dd_admin', KEY); } catch (e) {}
     $('login').hidden = true; $('tabs').hidden = false; $('shopSw').hidden = false; if ($('stats').hidden) $('main').hidden = false; $('reload').hidden = false; $('logout').hidden = false;
     if (!ORDERS.some(FILTERS.find(f => f[0] === filter)[2])) filter = ORDERS.some(FILTERS[0][2]) ? 'pendientes' : 'todos';
@@ -169,7 +172,7 @@ function openDet(id){
     <div class="dgrid">
       <div>
         <div class="box"><h4>Productos (${o.units} uds.)</h4>
-          ${(o.items || []).map(it => `<div class="it"><b>${it.qty} ×</b> <span class="oid">${esc(it.code)}</span> ${esc(it.name)}<br><span style="font-size:15px">${esc(it.size)}${it.names ? ' · <b>Nombres:</b> ' + esc(it.names) : ''}</span></div>`).join('')}
+          ${(o.items || []).map(it => `<div class="it"><b>${it.qty} ×</b> <span class="oid">${esc(it.code)}</span> ${esc(it.name)}<br><span style="font-size:15px">${esc(it.size)}${it.names ? ' · <b>Nombres:</b> ' + esc(it.names) : ''}${it.font ? ' · Letra ' + esc(it.font) : ''}${it.finish === 'Pintado' ? ' · <b>Pintado</b>' + (it.colors ? ': ' + esc(it.colors) : '') : (it.finish ? ' · Natural (láser)' : '')}</span></div>`).join('')}
           ${o.notes ? `<p style="font-style:italic;margin:8px 0 0">“${esc(o.notes)}”</p>` : ''}
         </div>
         <div class="box" style="margin-top:12px"><h4>Entrega</h4><b>${esc(o.delivery)}</b>${o.address ? '<br>' + esc(o.address) : ''}${o.needBy ? '<br><b>Lo necesita para:</b> ' + needCell(o) : ''}</div>
@@ -203,10 +206,11 @@ function openDet(id){
   const calc = () => { const n = id => parseFloat(($(id).value || '0').replace(',', '.')) || 0; $('mT').textContent = ddMoney(n('mP') + n('mS') - n('mD')); };
   ['mP', 'mS', 'mD'].forEach(i => $(i).oninput = calc);
   const auto = () => {
+    if (!window.DD_PRICES) { $('qCalc').innerHTML = '<div class="warn">No se han cargado las tarifas: actualiza el programa de Google (Code.gs).</div>'; return; }
     const q = ddQuote(o.items || []);
     $('mP').value = q.products ? String(q.products).replace('.', ',') : '';
     $('mD').value = q.discount ? String(q.discount).replace('.', ',') : '';
-    $('qCalc').innerHTML = q.lines.map(l => `<div>${l.qty} × ${esc(l.code)}: ${l.unit === null ? '<b>a medida — pon tú el precio</b>' : ddMoney(l.unit) + (l.extra ? ' + ' + l.extraNames + ' nombre(s) extra' : '') + ' = ' + ddMoney(l.subtotal) + (l.rate ? ' (−' + Math.round(l.rate * 100) + ' %)' : '')}</div>`).join('') +
+    $('qCalc').innerHTML = q.lines.map(l => `<div>${l.qty} × ${esc(l.code)}${l.layers === 2 ? ' (2 capas)' : l.layers === 3 ? ' (multicapa)' : ''}: ${l.unit === null ? '<b>a medida — pon tú el precio</b>' : ddMoney(l.unit) + (l.extraNames ? ' + ' + l.extraNames + ' nombre(s) extra' : '') + (l.paint ? ' + pintado ' + ddMoney(l.paint) : '') + ' = ' + ddMoney(l.subtotal) + (l.rate ? ' (−' + Math.round(l.rate * 100) + ' %)' : '')}</div>`).join('') +
       (q.custom ? '<div class="warn">Hay artículos a medida: suma su precio en «Productos».</div>' : '') + (/Env/.test(o.delivery) && !$('mS').value ? '<div class="warn">Es un envío: añade el importe del envío.</div>' : '');
     calc();
   };
@@ -232,6 +236,7 @@ $('lf').onsubmit = e => { e.preventDefault(); KEY = $('key').value.trim(); $('le
 $('logout').onclick = () => { KEY = ''; try { localStorage.removeItem('dd_admin'); } catch (e) {} location.reload(); };
 $('reload').onclick = () => load().then(() => toast('Actualizado'));
 $('q').oninput = draw;
+$('saveNotice').onclick = async () => { $('saveNotice').disabled = true; try { const r = await ddApi('adminSetNotice', { key: KEY, notice: $('noticeIn').value }); $('noticeIn').value = r.notice; toast(r.notice ? 'Aviso publicado en la web ✓' : 'Aviso quitado ✓'); } catch (e) { toast(e.message); } $('saveNotice').disabled = false; };
 let SHOP_OPEN = true, swArmed = false;
 function drawSw(){ const b = $('shopSw'); b.className = 'btn shopsw ' + (SHOP_OPEN ? 'on' : 'off'); b.innerHTML = SHOP_OPEN ? '● Pedidos abiertos' : '● Pedidos cerrados'; b.title = SHOP_OPEN ? 'Pulsa para cerrar los pedidos' : 'Pulsa para abrir los pedidos'; }
 $('shopSw').onclick = async () => {

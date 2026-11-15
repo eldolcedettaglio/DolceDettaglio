@@ -114,7 +114,7 @@ function render(o){
           <div style="font-size:16px"><b>Entrega:</b> ${esc(o.delivery)}${o.address ? '<br>' + esc(o.address) : ''}</div>
           ${o.needBy ? `<div style="font-size:16px"><b>Lo necesitas para:</b> ${new Date(o.needBy + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</div>` : ''}
           <div style="margin-top:10px">${(o.items || []).map(it => `
-            <div class="item"><img src="${imgFor(it.code)}" alt=""><div><b>${esc(it.code)}</b> · ${esc(it.name)}<br><span style="font-size:15px">${esc(it.size)}${it.names ? ' · Nombres: <i>' + esc(it.names) + '</i>' : ''}</span></div><div class="q">×${it.qty}</div></div>`).join('')}
+            <div class="item"><img src="${imgFor(it.code)}" alt=""><div><b>${esc(it.code)}</b> · ${esc(it.name)}<br><span style="font-size:15px">${esc(it.size)}${it.names ? ' · Nombres: <i>' + esc(it.names) + '</i>' : ''}${it.font ? ' · Letra ' + esc(it.font) : ''}${it.finish === 'Pintado' ? ' · <b>Pintado</b>' + (it.colors ? ': ' + esc(it.colors) : '') : (it.finish ? ' · Natural (láser)' : '')}</span></div><div class="q">×${it.qty}</div></div>`).join('')}
           </div>
           <div style="margin-top:8px;font-weight:700">${o.units} unidades</div>
           ${o.notes ? `<div style="margin-top:8px;font-style:italic">“${esc(o.notes)}”</div>` : ''}
